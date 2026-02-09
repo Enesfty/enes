@@ -10,10 +10,35 @@ const path = require('path');
 const { RobloxChecker } = require('./checker');
 const { getGenerator } = require('./generator');
 const { WebhookSender } = require('./webhook');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
+
+// Persistence: Path to checked usernames file
+const CHECKED_FILE = path.join(__dirname, '..', 'checked.txt');
+
+// Global set to share checked usernames across sessions/clients
+let globalCheckedUsernames = new Set();
+if (fs.existsSync(CHECKED_FILE)) {
+    try {
+        const content = fs.readFileSync(CHECKED_FILE, 'utf-8');
+        const usernames = content.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+        globalCheckedUsernames = new Set(usernames);
+        console.log(`Loaded ${globalCheckedUsernames.size} checked usernames from checked.txt`);
+    } catch (e) {
+        console.error('Error loading checked.txt:', e.message);
+    }
+}
+
+function saveCheckedUsername(username) {
+    try {
+        fs.appendFileSync(CHECKED_FILE, `${username}\n`);
+    } catch (e) {
+        // Ignore
+    }
+}
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -28,7 +53,6 @@ wss.on('connection', (ws) => {
     let running = false;
     let checker = null;
     let webhook = null;
-    let checkedUsernames = new Set();
 
     ws.on('message', async (message) => {
         try {
@@ -43,7 +67,9 @@ wss.on('connection', (ws) => {
 
                     running = true;
                     checker = new RobloxChecker();
-                    webhook = new WebhookSender(data.webhookUrl || '');
+                    // Fix: ensure webhook is initialized correctly
+                    const webhookUrl = data.webhookUrl || '';
+                    webhook = new WebhookSender(webhookUrl);
                     checker.start();
 
                     const types = data.types || ['4l'];
@@ -52,9 +78,12 @@ wss.on('connection', (ws) => {
                     const useProxy = data.useProxy !== false;
 
                     ws.send(JSON.stringify({ type: 'status', status: 'running' }));
+                    if (webhookUrl) {
+                        ws.send(JSON.stringify({ type: 'log', level: 'info', message: 'Webhook initialized.' }));
+                    }
 
                     // Start checking
-                    runChecker(ws, types, threads, verbose, useProxy, checker, webhook, checkedUsernames, () => running, () => { running = false; });
+                    runChecker(ws, types, threads, verbose, useProxy, checker, webhook, globalCheckedUsernames, () => running, () => { running = false; });
                     break;
 
                 case 'stop':
@@ -131,23 +160,25 @@ async function runChecker(ws, types, threads, verbose, useProxy, checker, webhoo
 
             if (available) {
                 ws.send(JSON.stringify({ type: 'hit', username, genType }));
-                if (webhook.webhookUrl) {
+                if (webhook && webhook.webhookUrl) {
                     try {
                         const success = await webhook.sendHit(username, genType);
                         if (success) {
                             ws.send(JSON.stringify({ type: 'log', level: 'info', message: `Webhook sent: ${username}` }));
                         } else {
-                            ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Webhook failed: ${username}` }));
+                            ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Webhook FAILED: ${username} (Check URL or Rate Limit)` }));
                         }
                     } catch (e) {
-                        ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Webhook error: ${e.message}` }));
+                        ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Webhook Error: ${e.message}` }));
                     }
+                } else if (verbose) {
+                    ws.send(JSON.stringify({ type: 'log', level: 'warn', message: `Hit found but no webhook URL set: ${username}` }));
                 }
             } else if (verbose) {
                 ws.send(JSON.stringify({ type: 'check', username, genType, message }));
             }
         } catch (error) {
-            ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Check setup error: ${error.message}` }));
+            ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Check error: ${error.message}` }));
         }
     };
 
@@ -172,6 +203,7 @@ async function runChecker(ws, types, threads, verbose, useProxy, checker, webhoo
                     continue;
                 }
                 checkedUsernames.add(username);
+                saveCheckedUsername(username);
 
                 await checkOne(username, type);
             } catch (e) {

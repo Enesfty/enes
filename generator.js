@@ -7,6 +7,8 @@
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
 const DIGITS = '0123456789';
 const CHARS = LETTERS + DIGITS;
+const VOWELS = 'aeiou';
+const CONSONANTS = 'bcdfghjklmnpqrstvwxyz';
 
 function randomChoice(str) {
     return str[Math.floor(Math.random() * str.length)];
@@ -21,6 +23,21 @@ function randomChoices(str, k) {
 }
 
 // Generator functions that return iterators
+function* generate3C() {
+    while (true) {
+        yield randomChoices(CHARS, 3);
+    }
+}
+
+function* generate4LVowel() {
+    while (true) {
+        const res = randomChoices(LETTERS, 4);
+        if ([...res].some(c => VOWELS.includes(c))) {
+            yield res;
+        }
+    }
+}
+
 function* generate4L() {
     while (true) {
         yield randomChoices(LETTERS, 4);
@@ -46,30 +63,56 @@ function* generate5C() {
 }
 
 function* generate5LMeaningful() {
+    const coolPrefixes = ["x", "z", "k", "v", "q", "j", "dr", "mr", "mc", "dj", "itz", "i", "the", "real"];
+    const coolSuffixes = ["x", "z", "0", "1", "9", "y", "o", "i", "69", "99", "00", "11", "ly", "ify", "ed"];
     const coolBases = [
         "ace", "pro", "god", "max", "top", "ice", "fire", "dark", "cold", "hot",
         "lit", "dope", "sick", "goat", "king", "boss", "lord", "duke", "hero",
         "zero", "neo", "rex", "lex", "jax", "zap", "zip", "zed", "zen", "vex",
         "fox", "wolf", "bear", "lion", "hawk", "owl", "bat", "cat", "dog", "rat",
         "sky", "sun", "moon", "star", "rain", "wind", "snow", "fog", "mist",
+        "soul", "void", "vibe", "wave", "flow", "glow", "pure", "rare", "solo"
     ];
 
     const patterns = [
-        () => randomChoice(LETTERS) + randomChoices(LETTERS, 3) + randomChoice(DIGITS),
-        () => randomChoices(LETTERS, 4) + randomChoice(DIGITS),
-        () => randomChoice(DIGITS) + randomChoices(LETTERS, 4),
-        () => randomChoices(LETTERS, 3) + randomChoices(DIGITS, 2),
-        () => randomChoices(DIGITS, 2) + randomChoices(LETTERS, 3),
-        () => coolBases[Math.floor(Math.random() * coolBases.length)].slice(0, 3) + randomChoices(CHARS, 2),
+        // CV-CV-C
+        () => randomChoice(CONSONANTS) + randomChoice(VOWELS) + randomChoice(CONSONANTS) + randomChoice(VOWELS) + randomChoice(CHARS),
+        // prefix + random
+        () => {
+            const p = randomChoice(coolPrefixes);
+            return p + randomChoices(LETTERS, 5 - p.length);
+        },
+        // base + suffix
+        () => {
+            const b = randomChoice(coolBases);
+            const s = randomChoice(coolSuffixes);
+            return b + s;
+        },
+        // 3L + suffix
+        () => randomChoices(LETTERS, 3) + randomChoice(coolSuffixes),
+        // Fragment + random
+        () => randomChoice(["ex", "oz", "ov", "ux", "ax", "io"]) + randomChoices(LETTERS, 3),
+        // Alternating
         () => randomChoice(LETTERS) + randomChoice(DIGITS) + randomChoice(LETTERS) + randomChoice(DIGITS) + randomChoice(LETTERS),
-        () => randomChoices(LETTERS, 5),
-        () => randomChoice('xzkvqj') + randomChoices(CHARS, 4),
-        () => randomChoices(CHARS, 3) + randomChoice('xz019y'),
+        // 4L + 1D
+        () => randomChoices(LETTERS, 4) + randomChoice(DIGITS),
+        // 1D + 4L
+        () => randomChoice(DIGITS) + randomChoices(LETTERS, 4),
+        // 3L + 2D
+        () => randomChoices(LETTERS, 3) + randomChoices(DIGITS, 2),
+        // Random
+        () => randomChoices(CHARS, 5),
     ];
 
     while (true) {
         const pattern = patterns[Math.floor(Math.random() * patterns.length)];
-        let username = pattern();
+        let username = '';
+        try {
+            username = pattern();
+        } catch (e) {
+            username = randomChoices(LETTERS, 5);
+        }
+
         if (username.length === 5) {
             yield username;
         } else if (username.length > 5) {
@@ -109,6 +152,8 @@ function* generateCleanMixed(length = 4) {
 
 function getGenerator(type) {
     const generators = {
+        '3c': generate3C,
+        '4l_vowel': generate4LVowel,
         '4l': generate4L,
         '4c': generate4C,
         '5l': generate5L,
