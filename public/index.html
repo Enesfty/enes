@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Username Checker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Roblox Username Checker</h1>
+            <div class="webhook-section">
+                <input type="text" id="webhookUrl" placeholder="Discord Webhook URL">
+                <button id="testWebhook" class="btn btn-secondary">Test</button>
+            </div>
+        </header>
+
+        <section class="controls">
+            <div class="type-checkboxes">
+                <label class="checkbox-item" style="--color: #FF6B6B">
+                    <input type="checkbox" value="4l"> 4 Letter
+                </label>
+                <label class="checkbox-item" style="--color: #4ECDC4">
+                    <input type="checkbox" value="4c"> 4 Char
+                </label>
+                <label class="checkbox-item" style="--color: #FECE00">
+                    <input type="checkbox" value="mixed"> Mixed
+                </label>
+                <label class="checkbox-item" style="--color: #DDA0DD">
+                    <input type="checkbox" value="clean_mixed"> Clean Mix
+                </label>
+                <label class="checkbox-item" style="--color: #45B7D1">
+                    <input type="checkbox" value="5l"> 5 Letter
+                </label>
+                <label class="checkbox-item" style="--color: #9B59B6">
+                    <input type="checkbox" value="5l_meaningful"> 5L Words
+                </label>
+                <label class="checkbox-item" style="--color: #96CEB4">
+                    <input type="checkbox" value="5c"> 5 Char
+                </label>
+            </div>
+
+            <div class="control-bar">
+                <div class="slider-group">
+                    <label>Threads: <span id="threadsValue">10</span></label>
+                    <input type="range" id="threads" min="1" max="50" value="10">
+                </div>
+
+                <label class="checkbox-item verbose-check">
+                    <input type="checkbox" id="verbose" checked> Show Logs
+                </label>
+
+                <label class="checkbox-item verbose-check">
+                    <input type="checkbox" id="useProxy" checked> Use Proxies
+                </label>
+
+                <div class="button-group">
+                    <button id="clearLog" class="btn btn-gray">🗑 Clear</button>
+                    <button id="stopBtn" class="btn btn-danger" disabled>⏹ Stop</button>
+                    <button id="startBtn" class="btn btn-success">▶ Start</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="log-section">
+            <div id="logArea"></div>
+        </section>
+
+        <footer class="stats-bar">
+            <div class="stat">📊 Checks: <span id="statChecks">0</span></div>
+            <div class="stat">✅ Hits: <span id="statHits">0</span></div>
+            <div class="stat">❌ Errors: <span id="statErrors">0</span></div>
+            <div class="stat">⚡ CPM: <span id="statCpm">0</span></div>
+            <div class="stat">🌐 Proxies: <span id="statProxies">0</span></div>
+            <div class="stat" id="statusIndicator">🔴 Stopped</div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
