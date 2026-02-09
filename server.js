@@ -160,6 +160,9 @@ async function runChecker(ws, types, threads, verbose, useProxy, checker, webhoo
 
             if (available) {
                 ws.send(JSON.stringify({ type: 'hit', username, genType }));
+                // Trace log
+                if (verbose) ws.send(JSON.stringify({ type: 'log', level: 'info', message: `Processing hit for ${username}...` }));
+
                 if (webhook && webhook.webhookUrl) {
                     try {
                         const success = await webhook.sendHit(username, genType);

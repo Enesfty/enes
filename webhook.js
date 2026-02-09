@@ -1,7 +1,3 @@
-/**
- * Discord Webhook Module
- */
-
 const fetch = require('node-fetch');
 
 class WebhookSender {
@@ -17,7 +13,9 @@ class WebhookSender {
         if (!this.webhookUrl) return false;
 
         const colors = {
+            '3c': 0xE67E22,
             '4l': 0xFF6B6B,
+            '4l_vowel': 0xF1C40F,
             '4c': 0x4ECDC4,
             '5l': 0x45B7D1,
             '5c': 0x96CEB4,
@@ -44,11 +42,20 @@ class WebhookSender {
         try {
             const response = await fetch(this.webhookUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Roblox-Checker-Web/1.0'
+                },
                 body: JSON.stringify({ embeds: [embed] })
             });
+
+            if (response.status !== 200 && response.status !== 204) {
+                console.error(`Webhook FAILED with status ${response.status}`);
+            }
+
             return response.status === 200 || response.status === 204;
         } catch (error) {
+            console.error('Webhook Error:', error.message);
             return false;
         }
     }
@@ -67,11 +74,15 @@ class WebhookSender {
         try {
             const response = await fetch(this.webhookUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Roblox-Checker-Web/1.0'
+                },
                 body: JSON.stringify({ embeds: [embed] })
             });
             return response.status === 200 || response.status === 204;
         } catch (error) {
+            console.error('Webhook Test Error:', error.message);
             return false;
         }
     }
