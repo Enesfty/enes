@@ -73,25 +73,41 @@ wss.on('connection', (ws) => {
                     break;
 
                 case 'scrape_proxies':
-                    const { spawn } = require('child_process');
-                    const pythonProcess = spawn('python', [path.join(__dirname, '..', 'proxy_scraper.py')]);
+                    try {
+                        const { spawn } = require('child_process');
+                        // Try python, then python3
+                        let cmd = 'python';
+                        const pythonProcess = spawn(cmd, [path.join(__dirname, '..', 'proxy_scraper.py')]);
 
-                    ws.send(JSON.stringify({ type: 'log', level: 'info', message: 'Starting proxy scraping...' }));
+                        ws.send(JSON.stringify({ type: 'log', level: 'info', message: 'Starting proxy scraping...' }));
 
-                    pythonProcess.stdout.on('data', (data) => {
-                        const output = data.toString().trim();
-                        if (output) ws.send(JSON.stringify({ type: 'log', level: 'info', message: `[Scraper] ${output}` }));
-                    });
+                        pythonProcess.stdout.on('data', (data) => {
+                            const output = data.toString().trim();
+                            if (output) ws.send(JSON.stringify({ type: 'log', level: 'info', message: `[Scraper] ${output}` }));
+                        });
 
-                    pythonProcess.on('close', (code) => {
-                        if (code === 0) {
-                            ws.send(JSON.stringify({ type: 'log', level: 'hit', message: 'Proxy scraping completed successfully!' }));
-                            if (checker) checker.loadProxies();
-                            ws.send(JSON.stringify({ type: 'stats', ...checker?.getStats() }));
-                        } else {
-                            ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Proxy scraper exited with code ${code}` }));
-                        }
-                    });
+                        pythonProcess.on('error', (err) => {
+                            ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Scraper error: ${err.message}. Make sure Python is installed.` }));
+                        });
+
+                        pythonProcess.on('close', (code) => {
+                            if (code === 0) {
+                                ws.send(JSON.stringify({ type: 'log', level: 'hit', message: 'Proxy scraping completed successfully!' }));
+                                if (checker) checker.loadProxies();
+                                ws.send(JSON.stringify({ type: 'stats', ...checker?.getStats() }));
+                            } else {
+                                ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Proxy scraper exited with code ${code}` }));
+                            }
+                        });
+                    } catch (e) {
+                        ws.send(JSON.stringify({ type: 'error', message: `Scraper launch failed: ${e.message}` }));
+                    }
+                    break;
+
+                case 'get_stats':
+                    if (checker) {
+                        ws.send(JSON.stringify({ type: 'stats', ...checker.getStats() }));
+                    }
                     break;
             }
         } catch (error) {
