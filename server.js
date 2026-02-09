@@ -72,10 +72,26 @@ wss.on('connection', (ws) => {
                     }));
                     break;
 
-                case 'get_stats':
-                    if (checker) {
-                        ws.send(JSON.stringify({ type: 'stats', ...checker.getStats() }));
-                    }
+                case 'scrape_proxies':
+                    const { spawn } = require('child_process');
+                    const pythonProcess = spawn('python', [path.join(__dirname, '..', 'proxy_scraper.py')]);
+
+                    ws.send(JSON.stringify({ type: 'log', level: 'info', message: 'Starting proxy scraping...' }));
+
+                    pythonProcess.stdout.on('data', (data) => {
+                        const output = data.toString().trim();
+                        if (output) ws.send(JSON.stringify({ type: 'log', level: 'info', message: `[Scraper] ${output}` }));
+                    });
+
+                    pythonProcess.on('close', (code) => {
+                        if (code === 0) {
+                            ws.send(JSON.stringify({ type: 'log', level: 'hit', message: 'Proxy scraping completed successfully!' }));
+                            if (checker) checker.loadProxies();
+                            ws.send(JSON.stringify({ type: 'stats', ...checker?.getStats() }));
+                        } else {
+                            ws.send(JSON.stringify({ type: 'log', level: 'error', message: `Proxy scraper exited with code ${code}` }));
+                        }
+                    });
                     break;
             }
         } catch (error) {

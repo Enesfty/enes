@@ -21,6 +21,7 @@ class CheckerApp {
         this.startBtn = document.getElementById('startBtn');
         this.stopBtn = document.getElementById('stopBtn');
         this.clearLogBtn = document.getElementById('clearLog');
+        this.scrapeProxiesBtn = document.getElementById('scrapeProxies');
         this.threadsSlider = document.getElementById('threads');
         this.threadsValue = document.getElementById('threadsValue');
         this.verboseCheck = document.getElementById('verbose');
@@ -44,6 +45,7 @@ class CheckerApp {
         this.stopBtn.addEventListener('click', () => this.stop());
         this.clearLogBtn.addEventListener('click', () => this.clearLog());
         this.testWebhookBtn.addEventListener('click', () => this.testWebhook());
+        this.scrapeProxiesBtn.addEventListener('click', () => this.scrapeProxies());
 
         this.threadsSlider.addEventListener('input', () => {
             this.threadsValue.textContent = this.threadsSlider.value;
@@ -158,6 +160,17 @@ class CheckerApp {
             action: 'test_webhook',
             webhookUrl: url
         }));
+    }
+
+    scrapeProxies() {
+        this.scrapeProxiesBtn.disabled = true;
+        this.log('Requesting proxy scrape...', 'info');
+        this.ws.send(JSON.stringify({ action: 'scrape_proxies' }));
+
+        // Re-enable after 30 seconds to prevent spam
+        setTimeout(() => {
+            this.scrapeProxiesBtn.disabled = false;
+        }, 30000);
     }
 
     clearLog() {
